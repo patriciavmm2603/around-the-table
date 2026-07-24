@@ -4,6 +4,7 @@ export type Recipe = {
   id: string; name: string; description: string; meal: "Breakfast" | "Lunch" | "Dinner";
   minutes: number; cost: number; calories: number; protein: number; image: string;
   ingredients: { name: string; quantity: string; category: string }[];
+  instructions: string[];
 };
 
 const people = {
@@ -56,6 +57,13 @@ export const recipes: Recipe[] = [
       { name: "Broccoli", quantity: "1 cup per 2 people", category: "Produce" },
       { name: "Olive oil", quantity: "1 tbsp per 2 people", category: "Pantry" },
     ],
+    instructions: [
+      "Heat the oven to 425°F and line a large sheet pan.",
+      "Toss the potatoes and broccoli with olive oil, salt, pepper and your favorite seasoning.",
+      "Add the chicken thighs to the pan and season both sides.",
+      "Roast for 30 to 35 minutes, stirring the vegetables halfway through, until the chicken is cooked through.",
+      "Rest for 5 minutes, then serve everything straight from the pan.",
+    ],
   },
   {
     id: "taco-bowls",
@@ -69,6 +77,13 @@ export const recipes: Recipe[] = [
       { name: "Black beans", quantity: "1 can per 4 people", category: "Pantry" },
       { name: "Shredded cheese", quantity: "1/4 cup per person", category: "Dairy" },
       { name: "Salsa", quantity: "2 tbsp per person", category: "Pantry" },
+    ],
+    instructions: [
+      "Cook the rice according to the package directions.",
+      "Brown the ground beef in a skillet, drain excess fat and season with taco seasoning.",
+      "Warm the black beans in a small saucepan or microwave.",
+      "Divide the rice among bowls and top with beef, beans, cheese and salsa.",
+      "Add any extra toppings your family likes, such as lettuce, corn or avocado.",
     ],
   },
   {
@@ -84,6 +99,13 @@ export const recipes: Recipe[] = [
       { name: "Heavy cream", quantity: "1/4 cup per 2 people", category: "Dairy" },
       { name: "Parmesan", quantity: "2 tbsp per person", category: "Dairy" },
     ],
+    instructions: [
+      "Cook the pasta until just tender, reserving a little pasta water before draining.",
+      "Season and sauté the chicken until golden and cooked through, then slice it.",
+      "In the same skillet, stir in cream, parmesan and a splash of pasta water.",
+      "Add the spinach and cook until wilted.",
+      "Toss in the pasta and chicken, then season to taste and serve warm.",
+    ],
   },
   {
     id: "breakfast-burritos",
@@ -96,6 +118,13 @@ export const recipes: Recipe[] = [
       { name: "Flour tortillas", quantity: "1 per person", category: "Bakery" },
       { name: "Frozen potatoes", quantity: "1/2 cup per person", category: "Frozen" },
       { name: "Shredded cheese", quantity: "1/4 cup per person", category: "Dairy" },
+    ],
+    instructions: [
+      "Cook the frozen potatoes until browned and crisp.",
+      "Scramble the eggs gently and season with salt and pepper.",
+      "Warm the tortillas so they fold without tearing.",
+      "Fill each tortilla with potatoes, eggs and cheese, then roll tightly.",
+      "Serve now or wrap individually and freeze for quick breakfasts.",
     ],
   },
   {
@@ -110,6 +139,12 @@ export const recipes: Recipe[] = [
       { name: "Lettuce", quantity: "1 cup per 2 people", category: "Produce" },
       { name: "Ranch dressing", quantity: "1 tbsp per person", category: "Pantry" },
     ],
+    instructions: [
+      "Lay the tortillas flat and spread ranch dressing over each one.",
+      "Layer on turkey and lettuce, keeping the filling away from the edges.",
+      "Fold in the sides and roll each wrap tightly.",
+      "Slice in half and serve immediately, or wrap for lunch later.",
+    ],
   },
   {
     id: "bbq-chicken",
@@ -122,6 +157,13 @@ export const recipes: Recipe[] = [
       { name: "BBQ sauce", quantity: "1/4 cup per person", category: "Pantry" },
       { name: "Burger buns", quantity: "1 per person", category: "Bakery" },
       { name: "Coleslaw mix", quantity: "1/2 cup per person", category: "Produce" },
+    ],
+    instructions: [
+      "Place the chicken in the slow cooker and pour the BBQ sauce over it.",
+      "Cover and cook on low for 5 to 6 hours or high for 2 to 3 hours.",
+      "Shred the chicken with two forks and stir it back into the sauce.",
+      "Toast the buns if desired and pile on the shredded chicken.",
+      "Serve with coleslaw on top or on the side.",
     ],
   },
 ];
