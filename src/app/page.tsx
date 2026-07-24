@@ -1,7 +1,7 @@
 "use client";
 
 import { useEffect, useMemo, useState } from "react";
-import { CalendarDays, Check, ChevronDown, Clock3, Heart, Home, ListChecks, Search, ShoppingBasket, Sparkles, Users, WalletCards, X } from "lucide-react";
+import { ArrowLeft, CalendarDays, Check, ChevronDown, Clock3, Flame, Heart, Home, ListChecks, Search, ShoppingBasket, Sparkles, Users, WalletCards, X } from "lucide-react";
 import { days, planningGroups, recipes, type PlanningGroup, type Recipe } from "@/lib/data";
 
 type Tab = "home" | "plan" | "recipes" | "groceries";
@@ -25,6 +25,7 @@ export default function Page() {
   const [plans, setPlans] = useState<PlanState>({});
   const [checked, setChecked] = useState<Record<string, boolean>>({});
   const [pickerDay, setPickerDay] = useState<string | null>(null);
+  const [selectedRecipe, setSelectedRecipe] = useState<Recipe | null>(null);
   const [query, setQuery] = useState("");
   const [ready, setReady] = useState(false);
 
@@ -47,6 +48,11 @@ export default function Page() {
   useEffect(() => {
     if (ready) localStorage.setItem(storageKey, JSON.stringify({ plans, checked, groupId }));
   }, [plans, checked, groupId, ready]);
+
+  useEffect(() => {
+    document.body.style.overflow = selectedRecipe || pickerDay ? "hidden" : "";
+    return () => { document.body.style.overflow = ""; };
+  }, [selectedRecipe, pickerDay]);
 
   const selectedMeals = useMemo(() => Object.values(groupPlan).filter(Boolean) as MealSlot[], [groupPlan]);
   const plannedCost = selectedMeals.reduce((sum, slot) => {
@@ -74,6 +80,12 @@ export default function Page() {
       [group.id]: { ...(current[group.id] ?? {}), [day]: { recipeId: recipe.id, servings: group.people.length } },
     }));
     setPickerDay(null);
+    setSelectedRecipe(null);
+  }
+
+  function addToNextOpenDay(recipe: Recipe) {
+    const nextDay = days.find((day) => !groupPlan[day]) ?? "Monday";
+    addMeal(nextDay, recipe);
   }
 
   function removeMeal(day: string) {
@@ -107,8 +119,8 @@ export default function Page() {
         </div>
 
         {tab === "home" && <HomeView group={group} plannedCost={plannedCost} plannedMeals={selectedMeals.length} onPlan={() => setTab("plan")} onGroceries={() => setTab("groceries")} onGroup={setGroupId} />}
-        {tab === "plan" && <PlanView group={group} groupPlan={groupPlan} plannedCost={plannedCost} onPick={setPickerDay} onRemove={removeMeal} onServings={updateServings} />}
-        {tab === "recipes" && <RecipesView query={query} setQuery={setQuery} group={group} onAdd={(recipe) => { setPickerDay(days.find((day) => !groupPlan[day]) ?? "Monday"); setTimeout(() => addMeal(days.find((day) => !groupPlan[day]) ?? "Monday", recipe), 0); }} />}
+        {tab === "plan" && <PlanView group={group} groupPlan={groupPlan} plannedCost={plannedCost} onPick={setPickerDay} onRemove={removeMeal} onServings={updateServings} onView={setSelectedRecipe} />}
+        {tab === "recipes" && <RecipesView query={query} setQuery={setQuery} group={group} onAdd={addToNextOpenDay} onView={setSelectedRecipe} />}
         {tab === "groceries" && <GroceriesView group={group} items={groceryItems} checked={checked} setChecked={setChecked} plannedCost={plannedCost} />}
       </main>
 
@@ -119,7 +131,8 @@ export default function Page() {
         <NavButton active={tab === "groceries"} onClick={() => setTab("groceries")} icon={<ShoppingBasket size={20} />} label="List" />
       </nav>
 
-      {pickerDay && <RecipePicker day={pickerDay} group={group} onClose={() => setPickerDay(null)} onSelect={(recipe) => addMeal(pickerDay, recipe)} />}
+      {pickerDay && <RecipePicker day={pickerDay} group={group} onClose={() => setPickerDay(null)} onSelect={(recipe) => addMeal(pickerDay, recipe)} onView={setSelectedRecipe} />}
+      {selectedRecipe && <RecipeDetails recipe={selectedRecipe} group={group} onClose={() => setSelectedRecipe(null)} onAdd={() => addToNextOpenDay(selectedRecipe)} />}
     </div>
   );
 }
@@ -156,21 +169,48 @@ function HomeView({ group, plannedCost, plannedMeals, onPlan, onGroceries, onGro
   );
 }
 
-function PlanView({ group, groupPlan, plannedCost, onPick, onRemove, onServings }: { group: PlanningGroup; groupPlan: Record<string, MealSlot | undefined>; plannedCost: number; onPick: (day: string) => void; onRemove: (day: string) => void; onServings: (day: string, servings: number) => void }) {
+function PlanView({ group, groupPlan, plannedCost, onPick, onRemove, onServings, onView }: { group: PlanningGroup; groupPlan: Record<string, MealSlot | undefined>; plannedCost: number; onPick: (day: string) => void; onRemove: (day: string) => void; onServings: (day: string, servings: number) => void; onView: (recipe: Recipe) => void }) {
   return (
     <section className="content"><div className="page-title"><div><span className="eyebrow">WEEKLY PLANNER</span><h1>What are we eating this week?</h1><p>{group.name} · Defaulting to {group.people.length} servings</p></div><div className="budget-chip"><WalletCards size={18}/><span><small>Estimated</small><strong>${plannedCost.toFixed(2)}</strong></span></div></div>
-      <div className="week-grid">{days.map((day, index) => { const slot = groupPlan[day]; const recipe = recipes.find((item) => item.id === slot?.recipeId); return <article className={`day-card ${recipe ? "filled" : ""}`} key={day}><div className="day-head"><div><span>{index + 27 > 31 ? index - 4 : index + 27}</span><strong>{day}</strong></div>{recipe && <button className="icon-button" onClick={() => onRemove(day)}><X size={16}/></button>}</div>{recipe && slot ? <><div className="meal-photo" style={{ background: recipe.image }}><span>{recipe.meal}</span></div><div className="meal-body"><h3>{recipe.name}</h3><div className="meal-meta"><span><Clock3 size={14}/>{recipe.minutes} min</span><span>${(recipe.cost * slot.servings).toFixed(2)}</span></div><div className="serving-control"><span>Servings</span><button onClick={() => onServings(day, slot.servings - 1)}>−</button><strong>{slot.servings}</strong><button onClick={() => onServings(day, slot.servings + 1)}>+</button></div><button className="text-button" onClick={() => onPick(day)}>Change meal</button></div></> : <button className="empty-meal" onClick={() => onPick(day)}><span>＋</span><strong>Add dinner</strong><small>Choose from affordable family favorites</small></button>}</article>; })}</div>
+      <div className="week-grid">{days.map((day, index) => { const slot = groupPlan[day]; const recipe = recipes.find((item) => item.id === slot?.recipeId); return <article className={`day-card ${recipe ? "filled" : ""}`} key={day}><div className="day-head"><div><span>{index + 27 > 31 ? index - 4 : index + 27}</span><strong>{day}</strong></div>{recipe && <button className="icon-button" onClick={() => onRemove(day)}><X size={16}/></button>}</div>{recipe && slot ? <><button className="meal-photo meal-photo-button" style={{ background: recipe.image }} onClick={() => onView(recipe)} aria-label={`View ${recipe.name}`}><span>{recipe.meal}</span></button><div className="meal-body"><h3>{recipe.name}</h3><div className="meal-meta"><span><Clock3 size={14}/>{recipe.minutes} min</span><span>${(recipe.cost * slot.servings).toFixed(2)}</span></div><div className="serving-control"><span>Servings</span><button onClick={() => onServings(day, slot.servings - 1)}>−</button><strong>{slot.servings}</strong><button onClick={() => onServings(day, slot.servings + 1)}>+</button></div><button className="text-button" onClick={() => onView(recipe)}>View recipe</button><button className="text-button" onClick={() => onPick(day)}>Change meal</button></div></> : <button className="empty-meal" onClick={() => onPick(day)}><span>＋</span><strong>Add dinner</strong><small>Choose from affordable family favorites</small></button>}</article>; })}</div>
     </section>
   );
 }
 
-function RecipesView({ query, setQuery, group, onAdd }: { query: string; setQuery: (value: string) => void; group: PlanningGroup; onAdd: (recipe: Recipe) => void }) {
+function RecipesView({ query, setQuery, group, onAdd, onView }: { query: string; setQuery: (value: string) => void; group: PlanningGroup; onAdd: (recipe: Recipe) => void; onView: (recipe: Recipe) => void }) {
   const filtered = recipes.filter((recipe) => `${recipe.name} ${recipe.description}`.toLowerCase().includes(query.toLowerCase()));
-  return <section className="content"><div className="page-title"><div><span className="eyebrow">RECIPE LIBRARY</span><h1>Simple meals your family will actually eat.</h1><p>Reasonably priced, easy to scale, and ready for busy weeks.</p></div></div><label className="search-box"><Search size={19}/><input value={query} onChange={(e) => setQuery(e.target.value)} placeholder="Search chicken, pasta, quick meals…" /></label><div className="recipe-grid">{filtered.map((recipe) => <RecipeCard key={recipe.id} recipe={recipe} servings={group.people.length} onAdd={() => onAdd(recipe)} />)}</div></section>;
+  return <section className="content"><div className="page-title"><div><span className="eyebrow">RECIPE LIBRARY</span><h1>Simple meals your family will actually eat.</h1><p>Reasonably priced, easy to scale, and ready for busy weeks.</p></div></div><label className="search-box"><Search size={19}/><input value={query} onChange={(e) => setQuery(e.target.value)} placeholder="Search chicken, pasta, quick meals…" /></label><div className="recipe-grid">{filtered.map((recipe) => <RecipeCard key={recipe.id} recipe={recipe} servings={group.people.length} onAdd={() => onAdd(recipe)} onView={() => onView(recipe)} />)}</div></section>;
 }
 
-function RecipeCard({ recipe, servings, onAdd }: { recipe: Recipe; servings: number; onAdd: () => void }) {
-  return <article className="recipe-card"><div className="recipe-image" style={{ background: recipe.image }}><span>{recipe.meal}</span><button aria-label="Favorite"><Heart size={18}/></button></div><div className="recipe-body"><h3>{recipe.name}</h3><p>{recipe.description}</p><div className="recipe-facts"><span><Clock3 size={15}/>{recipe.minutes} min</span><span>${(recipe.cost * servings).toFixed(2)}</span><span>{recipe.protein}g protein</span></div><button className="secondary" onClick={onAdd}>Add to next open day</button></div></article>;
+function RecipeCard({ recipe, servings, onAdd, onView }: { recipe: Recipe; servings: number; onAdd: () => void; onView: () => void }) {
+  return <article className="recipe-card"><button className="recipe-image recipe-image-button" style={{ background: recipe.image }} onClick={onView} aria-label={`View ${recipe.name}`}><span>{recipe.meal}</span><span className="favorite-button"><Heart size={18}/></span></button><div className="recipe-body"><button className="recipe-title-button" onClick={onView}><h3>{recipe.name}</h3></button><p>{recipe.description}</p><div className="recipe-facts"><span><Clock3 size={15}/>{recipe.minutes} min</span><span>${(recipe.cost * servings).toFixed(2)}</span><span>{recipe.protein}g protein</span></div><div className="recipe-actions"><button className="secondary secondary-outline" onClick={onView}>View recipe</button><button className="secondary" onClick={onAdd}>Add to plan</button></div></div></article>;
+}
+
+function RecipeDetails({ recipe, group, onClose, onAdd }: { recipe: Recipe; group: PlanningGroup; onClose: () => void; onAdd: () => void }) {
+  const [servings, setServings] = useState(group.people.length);
+  return <div className="recipe-detail-backdrop" role="dialog" aria-modal="true" aria-label={recipe.name}>
+    <div className="recipe-detail-sheet">
+      <div className="recipe-detail-hero" style={{ background: recipe.image }}>
+        <button className="recipe-back" onClick={onClose} aria-label="Close recipe"><ArrowLeft size={20}/></button>
+        <span className="recipe-detail-tag">{recipe.meal}</span>
+      </div>
+      <div className="recipe-detail-content">
+        <span className="eyebrow">{group.name.toUpperCase()}</span>
+        <h1>{recipe.name}</h1>
+        <p className="recipe-detail-description">{recipe.description}</p>
+        <div className="recipe-detail-stats">
+          <span><Clock3 size={18}/><strong>{recipe.minutes}</strong><small>minutes</small></span>
+          <span><Flame size={18}/><strong>{recipe.calories}</strong><small>calories</small></span>
+          <span><Sparkles size={18}/><strong>{recipe.protein}g</strong><small>protein</small></span>
+          <span><WalletCards size={18}/><strong>${(recipe.cost * servings).toFixed(2)}</strong><small>estimated</small></span>
+        </div>
+        <div className="recipe-serving-bar"><div><small>SERVINGS</small><strong>{servings} people</strong></div><div><button onClick={() => setServings((value) => Math.max(1, value - 1))}>−</button><span>{servings}</span><button onClick={() => setServings((value) => value + 1)}>+</button></div></div>
+        <section className="recipe-detail-section"><h2>Ingredients</h2><div className="ingredient-list">{recipe.ingredients.map((ingredient) => <div key={`${ingredient.category}-${ingredient.name}`}><span className="ingredient-dot"/><div><strong>{ingredient.name}</strong><small>{ingredient.quantity} · scaled for {servings}</small></div></div>)}</div></section>
+        <section className="recipe-detail-section"><h2>Instructions</h2><ol className="instruction-list">{recipe.instructions.map((step, index) => <li key={step}><span>{index + 1}</span><p>{step}</p></li>)}</ol></section>
+      </div>
+      <div className="recipe-detail-actions"><button className="secondary secondary-outline" onClick={onClose}>Close</button><button className="primary recipe-add-button" onClick={onAdd}>Add to next open day</button></div>
+    </div>
+  </div>;
 }
 
 function GroceriesView({ group, items, checked, setChecked, plannedCost }: { group: PlanningGroup; items: { name: string; category: string; details: string[] }[]; checked: Record<string, boolean>; setChecked: React.Dispatch<React.SetStateAction<Record<string, boolean>>>; plannedCost: number }) {
@@ -178,6 +218,6 @@ function GroceriesView({ group, items, checked, setChecked, plannedCost }: { gro
   return <section className="content"><div className="page-title"><div><span className="eyebrow">GROCERY LIST</span><h1>Everything you need for {group.name}.</h1><p>Check off what you already have before shopping.</p></div><div className="budget-chip"><ShoppingBasket size={18}/><span><small>Estimated</small><strong>${plannedCost.toFixed(2)}</strong></span></div></div>{!items.length ? <div className="empty-state"><ShoppingBasket size={38}/><h2>Your list is waiting.</h2><p>Add meals to the weekly planner and the ingredients will appear here automatically.</p></div> : <div className="grocery-layout"><div className="grocery-list">{categories.map((category) => <section key={category}><h3>{category}</h3>{items.filter((item) => item.category === category).map((item) => { const key = `${group.id}-${item.category}-${item.name}`; return <div className={`grocery-row ${checked[key] ? "done" : ""}`} key={key}><button className="check-button" onClick={() => setChecked((current) => ({ ...current, [key]: !current[key] }))}>{checked[key] && <Check size={16}/>}</button><div><strong>{item.name}</strong><small>{item.details.join(" · ")}</small></div><a target="_blank" rel="noreferrer" href={`https://www.walmart.com/search?q=${encodeURIComponent(item.name)}`}>Find at Walmart</a></div>; })}</section>)}</div><aside className="grocery-summary"><ListChecks size={24}/><h3>Before you shop</h3><p>Mark items you already have. Your Walmart links open searches in the Walmart site or app, where you can add the exact product to your signed-in cart.</p><div><span>{items.filter((item) => !checked[`${group.id}-${item.category}-${item.name}`]).length}</span><small>items left</small></div></aside></div>}</section>;
 }
 
-function RecipePicker({ day, group, onClose, onSelect }: { day: string; group: PlanningGroup; onClose: () => void; onSelect: (recipe: Recipe) => void }) {
-  return <div className="modal-backdrop" onMouseDown={onClose}><div className="modal" onMouseDown={(e) => e.stopPropagation()}><div className="modal-head"><div><span className="eyebrow">CHOOSE A MEAL</span><h2>{day} dinner</h2><p>Prices shown for {group.people.length} servings.</p></div><button className="icon-button" onClick={onClose}><X/></button></div><div className="picker-list">{recipes.filter((recipe) => recipe.meal === "Dinner").map((recipe) => <button key={recipe.id} onClick={() => onSelect(recipe)}><span className="picker-image" style={{ background: recipe.image }}/><div><strong>{recipe.name}</strong><small>{recipe.minutes} min · ${(recipe.cost * group.people.length).toFixed(2)} · {recipe.protein}g protein</small></div><span>＋</span></button>)}</div></div></div>;
+function RecipePicker({ day, group, onClose, onSelect, onView }: { day: string; group: PlanningGroup; onClose: () => void; onSelect: (recipe: Recipe) => void; onView: (recipe: Recipe) => void }) {
+  return <div className="modal-backdrop" onMouseDown={onClose}><div className="modal" onMouseDown={(e) => e.stopPropagation()}><div className="modal-head"><div><span className="eyebrow">CHOOSE A MEAL</span><h2>{day} dinner</h2><p>Prices shown for {group.people.length} servings.</p></div><button className="icon-button" onClick={onClose}><X/></button></div><div className="picker-list">{recipes.filter((recipe) => recipe.meal === "Dinner").map((recipe) => <div className="picker-row" key={recipe.id}><button className="picker-view" onClick={() => onView(recipe)}><span className="picker-image" style={{ background: recipe.image }}/><div><strong>{recipe.name}</strong><small>{recipe.minutes} min · ${(recipe.cost * group.people.length).toFixed(2)} · {recipe.protein}g protein</small></div></button><button className="picker-add" onClick={() => onSelect(recipe)} aria-label={`Add ${recipe.name}`}>＋</button></div>)}</div></div></div>;
 }
