@@ -1,0 +1,9 @@
+<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 640 150">
+  <g transform="translate(6 8)">
+    <rect width="132" height="132" rx="38" fill="#D8A77D"/>
+    <path d="M28 53h76M38 53l5 20h46l5-20M47 73v31M85 73v31M40 104h52" fill="none" stroke="#FFF8EF" stroke-width="8" stroke-linecap="round" stroke-linejoin="round"/>
+    <path d="M35 23l3 7 7 3-7 3-3 7-3-7-7-3 7-3 3-7Zm64 4 2.6 6 6 2.6-6 2.6-2.6 6-2.6-6-6-2.6 6-2.6 2.6-6Z" fill="#FFF8EF"/>
+  </g>
+  <text x="164" y="69" font-family="Georgia, serif" font-size="52" fill="#2E2A25">Around the</text>
+  <text x="164" y="124" font-family="Georgia, serif" font-size="58" fill="#2E2A25">Table</text>
+</svg>
